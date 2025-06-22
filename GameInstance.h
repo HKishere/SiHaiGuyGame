@@ -27,7 +27,7 @@ private:
 	std::vector<Player> m_vecPlayer;
 	int m_nBossIdx;
 	std::vector<int> m_vecTreasureInTable;
-	std::map<int, int> m_TreasureDivideMap; // ±íÊ¾µÚ i ·İTreasure ¸øµÚ j Î»Íæ¼Ò
+	std::map<int, int> m_TreasureDivideMap; // è¡¨ç¤ºç¬¬ i ä»½Treasure ç»™ç¬¬ j ä½ç©å®¶
 
 	bool m_bGameOver;
 	WSserver* m_WSser;

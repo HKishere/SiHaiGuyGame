@@ -5,9 +5,9 @@
 WSserver* WSserver::m_Instance = nullptr;
 
 
-// ÓÎÏ·Âß¼­´¦Àíº¯Êı
+// æ¸¸æˆé€»è¾‘å¤„ç†å‡½æ•°
 std::string process_game_command(const std::string& input) {
-    // ÕâÀïÊµÏÖÄãµÄÓÎÏ·Âß¼­
+    // è¿™é‡Œå®ç°ä½ çš„æ¸¸æˆé€»è¾‘
     if (input == "ping") {
         return "pong";
     }
@@ -20,20 +20,20 @@ static int callback_http(struct lws* wsi, enum lws_callback_reasons reason, void
 static int callback_game(struct lws* wsi, enum lws_callback_reasons reason,
     void* user, void* in, size_t len) {
     switch (reason) {
-    case LWS_CALLBACK_ESTABLISHED:// WS¿Í»§¶ËÁ¬½Ó
+    case LWS_CALLBACK_ESTABLISHED:// WSå®¢æˆ·ç«¯è¿æ¥
         std::cout << "Client connected" << std::endl;
         WSserver::GetInstance()->client_buffers[wsi] = "";
         break;
 
-    case LWS_CALLBACK_RECEIVE: // ½ÓÊÕWSÏûÏ¢
+    case LWS_CALLBACK_RECEIVE: // æ¥æ”¶WSæ¶ˆæ¯
     {
         std::string input((char*)in, len);
         std::cout << "Received: " << input << std::endl;
 
-        // ´¦ÀíÓÎÏ·Âß¼­
+        // å¤„ç†æ¸¸æˆé€»è¾‘
         std::string output = process_game_command(input);
 
-        // ×¼±¸ÏìÓ¦
+        // å‡†å¤‡å“åº”
         WSserver::GetInstance()->client_buffers[wsi] = output;
         lws_callback_on_writable(wsi);
         break;
@@ -49,7 +49,7 @@ static int callback_game(struct lws* wsi, enum lws_callback_reasons reason,
         break;
     }
 
-    case LWS_CALLBACK_CLOSED:// WS¿Í»§¶Ë¶Ï¿ªÁ¬½Ó
+    case LWS_CALLBACK_CLOSED:// WSå®¢æˆ·ç«¯æ–­å¼€è¿æ¥
         std::cout << "Client disconnected" << std::endl;
         WSserver::GetInstance()->client_buffers.erase(wsi);
         break;
