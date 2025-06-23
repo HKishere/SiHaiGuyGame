@@ -98,6 +98,7 @@ int WSserver::Init()
 	struct lws_context_creation_info info;
 	memset(&info, 0, sizeof(info));
     info.protocols = protocols;
+    info.port = PORT;
     info.gid = -1;
     info.uid = -1;
 

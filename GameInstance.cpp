@@ -60,14 +60,14 @@ void GameInstance::RunGame()
 {
 	while (!m_bGameOver)
 	{
-		GetTreasure();
-		if (!m_bGameOver)
-		{
-			break;
-		}
-		DivideTreasure();
-		SetTargetAndChooseAction();
-		JudgeDivide();
+		// GetTreasure();
+		// if (m_bGameOver)
+		// {
+		// 	break;
+		// }
+		// DivideTreasure();
+		// SetTargetAndChooseAction();
+		// JudgeDivide();
 	}
 }
 
@@ -106,10 +106,6 @@ void GameInstance::DivideTreasure()
 {
 	m_vecPlayer[m_nBossIdx].DivideTreasure(m_vecTreasureInTable, m_TreasureDivideMap);
 
-	//for (const auto& [TreasureIdx, PlayerIdx] : m_TreasureDivideMap)
-	//{
-	//	
-	//}
 }
 
 void GameInstance::SetTargetAndChooseAction()
