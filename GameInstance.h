@@ -13,6 +13,7 @@ public:
 	GameInstance(int nPlayerNum);
 	void RunGame();
 	void SetWSServer(WSserver* pWS);
+	void AddPlayer(const std::string strPlayerName);
 
 	void GetTreasure();
 	void DivideTreasure();
@@ -30,6 +31,7 @@ private:
 	std::map<int, int> m_TreasureDivideMap; // 表示第 i 份Treasure 给第 j 位玩家
 
 	bool m_bGameOver;
+	bool m_bGameStart;
 	WSserver* m_WSser;
 };
 

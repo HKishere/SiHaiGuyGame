@@ -1,4 +1,6 @@
 #include "WSServer.h"
+#include <json/json.h>
+#include "Logger.hpp"
 
 #define PORT 8080
 
@@ -15,23 +17,26 @@ std::string process_game_command(const std::string& input) {
 }
 
 static int callback_http(struct lws* wsi, enum lws_callback_reasons reason, void* user, void* in, size_t len) {
+    std::string input((char*)in, len);
+    LOG_DEBUG("get http msg: {}", input);
     return 0;
 }
 static int callback_game(struct lws* wsi, enum lws_callback_reasons reason,
     void* user, void* in, size_t len) {
     switch (reason) {
     case LWS_CALLBACK_ESTABLISHED:// WS客户端连接
-        std::cout << "Client connected" << std::endl;
+        LOG_INFO("Client connected");
         WSserver::GetInstance()->client_buffers[wsi] = "";
         break;
 
     case LWS_CALLBACK_RECEIVE: // 接收WS消息
     {
         std::string input((char*)in, len);
-        std::cout << "Received: " << input << std::endl;
+        LOG_INFO("Received: {}",input);
 
         // 处理游戏逻辑
         std::string output = process_game_command(input);
+        LOG_INFO("Response: {}",output);
 
         // 准备响应
         WSserver::GetInstance()->client_buffers[wsi] = output;
@@ -68,7 +73,7 @@ static struct lws_protocols protocols[] = {
         0
     },
     {
-        "game-protocol",
+        "game-protocol",//创建游戏页面时要带上这个协议名
         callback_game,
         0,
         0

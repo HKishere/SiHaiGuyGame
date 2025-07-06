@@ -1,13 +1,17 @@
 ﻿#include <cstdio>
 #include "GameInstance.h"
 #include "WSServer.h"
+#include "Logger.hpp"
 int main()
 {
-	printf("%s 启动!\n", "TableGame");
+	Logger::getInstance().init();
+	LOG_INFO("{} 启动!\n", "TableGame");
 	WSserver * server =  WSserver::GetInstance();
 	server->Init();
-	GameInstance game(1);
-	game.SetWSServer(server);
-	game.RunGame();
+	while (1)
+	{
+		sleep(1);
+	}
+	
 	return 0;
 }

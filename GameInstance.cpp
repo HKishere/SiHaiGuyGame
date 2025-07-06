@@ -60,14 +60,14 @@ void GameInstance::RunGame()
 {
 	while (!m_bGameOver)
 	{
-		// GetTreasure();
-		// if (m_bGameOver)
-		// {
-		// 	break;
-		// }
-		// DivideTreasure();
-		// SetTargetAndChooseAction();
-		// JudgeDivide();
+		GetTreasure();
+		if (m_bGameOver)
+		{
+			break;
+		}
+		DivideTreasure();
+		SetTargetAndChooseAction();
+		JudgeDivide();
 	}
 }
 
