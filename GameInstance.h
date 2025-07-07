@@ -10,16 +10,17 @@
 class GameInstance
 {
 public:
-	GameInstance(int nPlayerNum);
+	GameInstance(int nPlayerNum, const std::string& strPassWord);
 	void RunGame();
-	void SetWSServer(WSserver* pWS);
-	void AddPlayer(const std::string strPlayerName);
+	void AddPlayer(const std::string strPlayerName, lws* WSsocket);
 
 	void GetTreasure();
 	void DivideTreasure();
 	void SetTargetAndChooseAction();
 	Player& GetNextPlayer(int Idx);
 	void JudgeDivide();
+	std::string GetRoomId(){return m_strRoomID;};
+	int GetConnectedPlayerNum(){return m_ConnectedPlayerNum;};
 
 private:
 	std::thread m_tGameThread;
@@ -32,6 +33,10 @@ private:
 
 	bool m_bGameOver;
 	bool m_bGameStart;
-	WSserver* m_WSser;
+	
+	std::string m_strRoomID;
+	std::string m_strRoomPassWord;
+
+	int m_ConnectedPlayerNum;
 };
 

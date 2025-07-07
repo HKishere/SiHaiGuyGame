@@ -3,6 +3,8 @@
 #include <map>
 #include <vector>
 
+struct lws;
+
 enum class EAction
 {
 	E_Aggre,
@@ -16,6 +18,8 @@ class Player
 {
 public:
 	Player(int Idx);
+	void SetWSsocket(lws* WSsocket){m_WSsocket = WSsocket;};
+	void SetName(const std::string& Name){m_strName = Name;};
 	int GetPlayerIdx();
 	void SetTarget();
 	int GetTarget();
@@ -31,6 +35,7 @@ public:
 	std::string m_strName;
 	int m_nTreasure;
 	bool m_bBoss;
+	lws* m_WSsocket;
 
 	int m_nPlayerIdx;
 };

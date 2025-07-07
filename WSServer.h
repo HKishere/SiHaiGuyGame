@@ -3,23 +3,25 @@
 #include <string>
 #include <map>
 #include <iostream>
+#include <memory>
 
 class GameInstance;
 
 class WSserver
 {
 public:
-	static WSserver* GetInstance();
+	static WSserver *GetInstance();
 	~WSserver();
 
 	int Init();
-	std::map<struct lws*, std::string> client_buffers;
+	// 向指定客户端发送消息
+	void SendToClient(struct lws *wsi, const std::string &message);
+
+	std::map<struct lws *, std::string> client_buffers;
+	std::map<std::string, std::unique_ptr<GameInstance>> m_AllGameMap;
+
 private:
-	std::map<unsigned int, GameInstance*> m_AllGameMap;
 	WSserver();
-	struct lws_context* m_WScontext;
-	static WSserver* m_Instance;
-
+	struct lws_context *m_WScontext;
+	static WSserver *m_Instance;
 };
-
- 

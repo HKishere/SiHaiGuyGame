@@ -1,7 +1,9 @@
 ﻿#include "GameInstance.h"
 #include <random>
 #include <iostream>
+#include <sstream>
 #include <map>
+#include <iomanip>
 
 constexpr int MAX_TREASURE_NUM = 150;
 constexpr int POLICE_TREASURE_VALUE = -1;
@@ -9,10 +11,9 @@ constexpr int MIN_VALUE = 1000;
 constexpr int MAX_VALUE = 5000;
 constexpr int DIVISOR = 500;
 
-
 int GetRandomtreasure()
 {
-	std::random_device rd;  // 用于获取随机种子
+	std::random_device rd;	// 用于获取随机种子
 	std::mt19937 gen(rd()); // 使用Mersenne Twister引擎
 	// 计算可能的取值范围 (1000-5000之间能被500整除的数只有1000,1500,2000,2500,3000,3500,4000,4500,5000)
 	constexpr int min = (MIN_VALUE + DIVISOR - 1) / DIVISOR; // 向上取整
@@ -21,16 +22,38 @@ int GetRandomtreasure()
 	int random_multiple = distrib(gen) * DIVISOR;
 	return random_multiple;
 }
-
-
-GameInstance::GameInstance(int nPlayerNum)
+std::string GenerateRoomID()
 {
+	// 1. 获取当前毫秒时间戳（保证唯一性基础）
+	auto now = std::chrono::system_clock::now();
+	auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+				  now.time_since_epoch())
+				  .count();
+
+	// 2. 生成随机数（增加碰撞防护）
+	static std::random_device rd;
+	static std::mt19937 gen(rd());
+	std::uniform_int_distribution<> dis(0, 9999);
+	int rand_num = dis(gen);
+
+	// 3. 组合成可读ID（示例格式：R1625091234567-4242）
+	std::stringstream ss;
+	ss << "R" << ms << "-" << std::setw(4) << std::setfill('0') << rand_num;
+	return ss.str();
+}
+
+GameInstance::GameInstance(int nPlayerNum, const std::string &strPassWord)
+{
+	m_ConnectedPlayerNum = 0;
+	m_strRoomPassWord = strPassWord;
+	m_strRoomID = GenerateRoomID();
+
 	for (int i = 0; i < nPlayerNum; i++)
 	{
 		m_vecPlayer.emplace_back(Player(i));
 	}
 
-	std::random_device rd;  // 用于获取随机种子
+	std::random_device rd;	// 用于获取随机种子
 	std::mt19937 gen(rd()); // 使用Mersenne Twister引擎
 	// 计算可能的取值范围 (1000-5000之间能被500整除的数只有1000,1500,2000,2500,3000,3500,4000,4500,5000)
 	constexpr int min = (MIN_VALUE + DIVISOR - 1) / DIVISOR; // 向上取整
@@ -38,7 +61,7 @@ GameInstance::GameInstance(int nPlayerNum)
 	std::uniform_int_distribution<> distrib(min, max);
 
 	m_vecTeasure.clear();
-	//生成宝藏牌堆
+	// 生成宝藏牌堆
 	for (int i = 0; i < MAX_TREASURE_NUM; i++)
 	{
 		int random_multiple = distrib(gen) * DIVISOR;
@@ -71,9 +94,9 @@ void GameInstance::RunGame()
 	}
 }
 
-void GameInstance::SetWSServer(WSserver* pWS)
+void GameInstance::AddPlayer(const std::string strPlayerName, lws* WSsocket)
 {
-	m_WSser = pWS;
+	m_vecPlayer.at(m_ConnectedPlayerNum).SetWSsocket(WSsocket);
 }
 
 void GameInstance::GetTreasure()
@@ -105,19 +128,18 @@ void GameInstance::GetTreasure()
 void GameInstance::DivideTreasure()
 {
 	m_vecPlayer[m_nBossIdx].DivideTreasure(m_vecTreasureInTable, m_TreasureDivideMap);
-
 }
 
 void GameInstance::SetTargetAndChooseAction()
 {
-	for (auto& player : m_vecPlayer)
+	for (auto &player : m_vecPlayer)
 	{
 		player.SetAction();
 		player.SetTarget();
 	}
 }
 
-Player& GameInstance::GetNextPlayer(int Idx)
+Player &GameInstance::GetNextPlayer(int Idx)
 {
 	if (static_cast<size_t>(Idx + 1) >= m_vecPlayer.size())
 	{
@@ -134,7 +156,7 @@ void GameInstance::JudgeDivide()
 {
 	int nAggreNum = 0;
 	int nOpposeNum = 0;
-	auto& player = m_vecPlayer[m_nBossIdx];
+	auto &player = m_vecPlayer[m_nBossIdx];
 	bool bStealFlag = false;
 	do
 	{
@@ -148,13 +170,13 @@ void GameInstance::JudgeDivide()
 			nOpposeNum++;
 			break;
 		case EAction::E_Robbery:
-			if (m_vecPlayer[player.GetTarget()].GetAction() == EAction::E_Defend) //失败
+			if (m_vecPlayer[player.GetTarget()].GetAction() == EAction::E_Defend) // 失败
 			{
 				int TreasureLoss = GetRandomtreasure();
 				player.LostTreasure(TreasureLoss);
 				m_vecPlayer[player.GetTarget()].GetTreasure(TreasureLoss);
 			}
-			else //成功
+			else // 成功
 			{
 				int TreasureLoss = GetRandomtreasure();
 				m_vecPlayer[player.GetTarget()].LostTreasure(TreasureLoss);
@@ -176,9 +198,9 @@ void GameInstance::JudgeDivide()
 		player = GetNextPlayer(player.GetPlayerIdx());
 	} while (player.GetPlayerIdx() != m_nBossIdx);
 
-	if (nAggreNum > nOpposeNum) //通过，分钱
+	if (nAggreNum > nOpposeNum) // 通过，分钱
 	{
-		for (auto& [TreasureIdx, PlayerIdx] : m_TreasureDivideMap)
+		for (auto &[TreasureIdx, PlayerIdx] : m_TreasureDivideMap)
 		{
 			m_vecPlayer[PlayerIdx].GetTreasure(m_vecTreasureInTable[TreasureIdx]);
 		}
@@ -188,5 +210,4 @@ void GameInstance::JudgeDivide()
 		m_nBossIdx = GetNextPlayer(m_nBossIdx).GetPlayerIdx();
 		m_TreasureDivideMap.clear();
 	}
-
 }

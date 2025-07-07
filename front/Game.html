@@ -149,7 +149,7 @@
 <body>
     <div class="container">
         <h1>四海好家伙</h1>
-        <h2 style="margin-bottom: 2rem; font-size: 1.8rem;">黑帮桌游助手</h2>
+        <h2 style="margin-bottom: 2rem; font-size: 1.8rem;">桌游助手</h2>
         
         <div class="buttons">
             <button class="btn btn-create" onclick="createGame()">
@@ -333,7 +333,7 @@
                         document.body.removeChild(connectingDiv);
                         alert('服务器响应超时，请检查网络连接');
                     }
-                }, 10000); // 10秒超时
+                }, 100000); // 10秒超时
             });
             
             // 组装弹窗

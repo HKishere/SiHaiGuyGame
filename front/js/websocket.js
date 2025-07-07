@@ -38,7 +38,7 @@ function handleServerMessage(response) {
     console.log('收到服务器消息:', response);
     
     switch(response.action) {
-        case 'create_response':
+        case 'create':
             if (response.success) {
                 currentRoomId = response.room_id;
                 alert(`房间创建成功！房间号: ${currentRoomId}`);

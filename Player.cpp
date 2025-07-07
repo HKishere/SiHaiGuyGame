@@ -1,7 +1,12 @@
 #include "Player.h"
+#include <libwebsockets.h>
 
 Player::Player(int Idx) : m_nPlayerIdx(Idx)
 {
+	m_bBoss = false;
+	m_nTreasure = 3000;
+	m_nTargetIdx = -1;
+	m_strName = "Player" + std::to_string(Idx + 1);
 }
 
 int Player::GetPlayerIdx()
