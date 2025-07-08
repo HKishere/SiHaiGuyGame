@@ -36,7 +36,7 @@ std::string GetJsonMsgAction(const std::string &input)
     return action;
 }
 
-std::string CreateGame(const std::string &strJson)
+std::string CreateGame(const std::string &strJson, lws *wsi)
 {
     Json::Value root;
     Json::CharReaderBuilder readerBuilder;
@@ -49,13 +49,13 @@ std::string CreateGame(const std::string &strJson)
     if (!reader->parse(inputStart, inputEnd, &root, &errors))
     {
         LOG_ERROR("json string parse errror");
-        return "";
+        return R"({"action":create, "success":false, "message":"ceate game failed!"})";
     }
     // 验证room_info
     if (!root.isMember("room_info") || !root["room_info"].isObject())
     {
         LOG_ERROR("json parse key : [room_info] error");
-        return "";
+        return R"({"action":create, "success":false, "message":"ceate game failed!"})";
     }
 
     Json::Value roomInfo = root["room_info"];
@@ -64,13 +64,13 @@ std::string CreateGame(const std::string &strJson)
     if (!roomInfo.isMember("player_num") || !roomInfo["player_num"].isInt())
     {
         LOG_ERROR("json parse key : [player_num] error");
-        return "";
+        return R"({"action":create, "success":false, "message":"ceate game failed!"})";
     }
 
     int playerNum = roomInfo["player_num"].asInt();
     LOG_INFO("json [player_num] {}", playerNum);
 
-    // 获取密码（可选）
+    // 获取密码
     std::string password;
     if (roomInfo.isMember("passwd") && roomInfo["passwd"].isString())
     {
@@ -78,36 +78,143 @@ std::string CreateGame(const std::string &strJson)
         LOG_INFO("json [passwd] {}", password);
     }
     std::unique_ptr<GameInstance> newGame = std::make_unique<GameInstance>(playerNum, password);
+    if (newGame == nullptr)
+    {
+        LOG_ERROR("GameInstance create failed!", password);
+        return R"({"action":create, "success":false, "message":"ceate game failed!"})";
+    }
+
+    // 获取房间ID
     std::string strRoomId = newGame.get()->GetRoomId();
     LOG_INFO("new game room id : {}", strRoomId);
+
+    // 组合回复报文
+    Json::StreamWriterBuilder writer;
+    Json::Value response;
+    response["action"] = "create";
+    response["success"] = true;
+    response["message"] = "Game created successfully!";
+    response["room_id"] = strRoomId;
+    response["player_idx"] = newGame.get()->GetConnectedPlayerNum(); // 从房间信息获取
+
+    // 加入Player到游戏实例中
+    std::string strDefaultName = "Player_" + newGame.get()->GetConnectedPlayerNum();
+    newGame.get()->AddPlayer(strDefaultName, wsi);
+
+    // 加入map中进行管理
     WSserver::GetInstance()->m_AllGameMap.emplace(strRoomId, std::move(newGame));
     LOG_INFO("creata game success!");
-    return strRoomId;
+
+    return Json::writeString(writer, response);
+}
+
+std::string JoinGame(const std::string& strJson, lws* wsi) 
+{
+    Json::Value root;
+    Json::CharReaderBuilder readerBuilder;
+    std::unique_ptr<Json::CharReader> reader(readerBuilder.newCharReader());
+    std::string errors;
+    const char* inputStart = strJson.c_str();
+    const char* inputEnd = inputStart + strJson.size();
+
+    // 1. 解析JSON字符串
+    if (!reader->parse(inputStart, inputEnd, &root, &errors)) 
+    {
+        LOG_ERROR("json string parse error");
+        return R"({"action":"join","success":false,"message":"Invalid request format"})";
+    }
+
+    // 2. 验证必要字段
+    if (!root.isMember("room_id") || !root["room_id"].isString()) 
+    {
+        LOG_ERROR("Missing or invalid room_id");
+        return R"({"action":"join","success":false,"message":"Missing room ID"})";
+    }
+
+    std::string roomId = root["room_id"].asString();
+    std::string password;
+
+    // 3. 获取密码（可选）
+    if (root.isMember("passwd") && root["passwd"].isString()) 
+    {
+        password = root["passwd"].asString();
+        LOG_INFO("Join request with password for room: {}", roomId);
+    }
+
+    // 4. 查找游戏房间
+    auto it = WSserver::GetInstance()->m_AllGameMap.find(roomId);
+    if (it == WSserver::GetInstance()->m_AllGameMap.end()) 
+    {
+        LOG_WARN("Room not found: {}", roomId);
+        return R"({"action":"join","success":false,"message":"Room not found"})";
+    }
+
+    GameInstance* game = it->second.get();
+
+    // 5. 验证密码
+    if (!game->CheckPassword(password)) 
+    {
+        LOG_WARN("Password mismatch for room: {}", roomId);
+        return R"({"action":"join","success":false,"message":"Incorrect password"})";
+    }
+
+    int playerIdx = game->GetConnectedPlayerNum();
+
+    // 添加玩家到游戏
+    std::string playerName = "Player_" + std::to_string(game->GetConnectedPlayerNum());
+    if (!game->AddPlayer(playerName, wsi)) 
+    {
+        LOG_WARN("Room is full: {}", roomId);
+        return R"({"action":"join","success":false,"message":"Room is full"})";
+    }
+
+    // 8. 准备响应
+    Json::Value response;
+    response["action"] = "join";
+    response["success"] = true;
+    response["room_id"] = roomId;
+    response["player_idx"] = playerIdx;
+    response["player_name"] = playerName;
+    response["message"] = "Joined game successfully";
+
+    // // 9. 通知房间内其他玩家
+    // Json::Value notifyOthers;
+    // notifyOthers["action"] = "player_joined";
+    // notifyOthers["player_idx"] = playerIdx;
+    // notifyOthers["player_name"] = playerName;
+    // notifyOthers["total_players"] = game->GetConnectedPlayerNum();
+
+    Json::StreamWriterBuilder writer;
+    // std::string notifyMsg = Json::writeString(writer, notifyOthers);
+    
+    // // 广播给房间内其他玩家（排除自己）
+    // for (const auto& player : game->GetAllPlayers()) 
+    // {
+    //     if (player.GetWSsocket() != wsi) 
+    //     {
+    //         WSserver::GetInstance()->SendToClient(player.GetWSsocket(), notifyMsg);
+    //     }
+    // }
+
+    return Json::writeString(writer, response);
 }
 
 // 游戏逻辑处理函数
-std::string process_game_command(const std::string &input)
+std::string process_game_command(const std::string &input, lws *wsi)
 {
+    std::string response = "";
     // 这里实现你的游戏逻辑
     std::string strAction = GetJsonMsgAction(input);
     if (strAction == "create")
     {
-        std::string room_id = CreateGame(input);
-        if (room_id == "") // 创建失败
-        {
-            return R"({"action":create, "success":false, "message":"ceate game failed!"})";
-        }
-        else
-        {
-            // 成功创建房间的响应
-            std::stringstream ss;
-            ss << R"({"action":"create","success":true,"room_id":")"
-               << room_id
-               << R"(","message":"Game created successfully!"})";
-            return ss.str();
-        }
+        response = CreateGame(input, wsi);
     }
-    return "";
+    else if (strAction == "join")
+    {
+        response = JoinGame(input, wsi);
+    }
+    
+    return response;
 }
 
 static int callback_http(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len)
@@ -132,7 +239,7 @@ static int callback_game(struct lws *wsi, enum lws_callback_reasons reason,
         LOG_INFO("Received: {}", input);
 
         // 处理游戏逻辑
-        std::string output = process_game_command(input);
+        std::string output = process_game_command(input, wsi);
         LOG_INFO("Response: {}", output);
 
         // 准备响应
@@ -165,14 +272,9 @@ static int callback_game(struct lws *wsi, enum lws_callback_reasons reason,
 }
 
 static struct lws_protocols protocols[] = {
-    {"http-only",
-     callback_http,
-     0,
-     0},
+    {"http-only", callback_http, 0, 0},
     {"game-protocol", // 创建游戏页面时要带上这个协议名
-     callback_game,
-     0,
-     0},
+     callback_game, 0, 0},
     {NULL, NULL, 0, 0}};
 
 WSserver::WSserver()
@@ -227,14 +329,14 @@ void WSserver::SendToClient(lws *wsi, const std::string &message)
     lws_callback_on_writable(wsi);
 }
 
-// void BroadcastToRoom(const std::string& roomId, const std::string& message) 
-// {
-//     auto gameIt = WSserver::GetInstance()->m_AllGameMap.find(roomId);
-//     if (gameIt != WSserver::GetInstance()->m_AllGameMap.end()) 
-//     {
-//         for (auto client : gameIt->second->GetConnectedClients()) 
-//         {
-//             WSserver::GetInstance()->SendToClient(client, message);
-//         }
-//     }
-// }
+void BroadcastToRoom(const std::string &roomId, const std::string &message)
+{
+    auto gameIt = WSserver::GetInstance()->m_AllGameMap.find(roomId);
+    if (gameIt != WSserver::GetInstance()->m_AllGameMap.end())
+    {
+        for (auto player : gameIt->second->GetAllPlayers())
+        {
+            WSserver::GetInstance()->SendToClient(player.GetWSsocket(), message);
+        }
+    }
+}

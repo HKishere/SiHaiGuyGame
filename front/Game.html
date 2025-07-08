@@ -1,26 +1,27 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="/js/websocket.js"></script>  <!-- 新增的WebSocket处理文件 -->
+    <script src="/js/websocket.js"></script> <!-- 新增的WebSocket处理文件 -->
     <title>四海好家伙 - 黑帮桌游助手</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap');
-        
+
         :root {
             --primary-color: #4a148c;
             --secondary-color: #ff6f00;
             --accent-color: #ffab40;
             --text-color: #f5f5f5;
         }
-        
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             background: linear-gradient(135deg, #1a1a2e, #16213e);
             font-family: 'ZCOOL KuaiLe', cursive;
@@ -32,28 +33,28 @@
             align-items: center;
             perspective: 1000px;
         }
-        
+
         .container {
             text-align: center;
             position: relative;
             z-index: 1;
         }
-        
+
         h1 {
             font-size: 4rem;
             margin-bottom: 2rem;
-            text-shadow: 0 0 10px var(--accent-color), 
-                         0 0 20px var(--accent-color);
+            text-shadow: 0 0 10px var(--accent-color),
+                0 0 20px var(--accent-color);
             animation: glow 2s ease-in-out infinite alternate;
         }
-        
+
         .buttons {
             display: flex;
             justify-content: center;
             gap: 2rem;
             margin-top: 3rem;
         }
-        
+
         .btn {
             position: relative;
             padding: 1.2rem 2.5rem;
@@ -71,7 +72,7 @@
             align-items: center;
             justify-content: center;
         }
-        
+
         .btn::before {
             content: '';
             position: absolute;
@@ -79,65 +80,66 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(45deg, 
-                var(--primary-color), 
-                var(--secondary-color));
+            background: linear-gradient(45deg,
+                    var(--primary-color),
+                    var(--secondary-color));
             z-index: -1;
             transition: all 0.3s;
         }
-        
+
         .btn:hover {
             transform: translateY(-5px) rotateX(10deg);
             box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
         }
-        
+
         .btn:hover::before {
             transform: scale(1.05);
         }
-        
+
         .btn:active {
             transform: translateY(0) rotateX(0);
         }
-        
+
         .btn-create {
             --primary-color: #4a148c;
             --secondary-color: #7b1fa2;
         }
-        
+
         .btn-join {
             --primary-color: #e65100;
             --secondary-color: #ff6f00;
         }
-        
+
         .mafia-icon {
             font-size: 1.5rem;
             margin-right: 12px;
             filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
         }
-        
+
         @keyframes glow {
             from {
-                text-shadow: 0 0 10px var(--accent-color), 
-                             0 0 20px var(--accent-color);
+                text-shadow: 0 0 10px var(--accent-color),
+                    0 0 20px var(--accent-color);
             }
+
             to {
-                text-shadow: 0 0 20px var(--accent-color), 
-                             0 0 30px var(--accent-color),
-                             0 0 40px var(--accent-color);
+                text-shadow: 0 0 20px var(--accent-color),
+                    0 0 30px var(--accent-color),
+                    0 0 40px var(--accent-color);
             }
         }
-        
+
         /* 响应式设计 */
         @media (max-width: 768px) {
             h1 {
                 font-size: 2.5rem;
             }
-            
+
             .buttons {
                 flex-direction: column;
                 gap: 1.5rem;
             }
-            
+
             .btn {
                 font-size: 1.2rem;
                 padding: 1rem 2rem;
@@ -146,11 +148,12 @@
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 </head>
+
 <body>
     <div class="container">
         <h1>四海好家伙</h1>
         <h2 style="margin-bottom: 2rem; font-size: 1.8rem;">桌游助手</h2>
-        
+
         <div class="buttons">
             <button class="btn btn-create" onclick="createGame()">
                 <i class="fas fa-user-secret mafia-icon"></i>
@@ -179,7 +182,7 @@
             overlay.style.display = 'flex';
             overlay.style.justifyContent = 'center';
             overlay.style.alignItems = 'center';
-            
+
             // 创建弹窗容器
             const modal = document.createElement('div');
             modal.style.backgroundColor = '#2a2a3a';
@@ -189,7 +192,7 @@
             modal.style.width = '90%';
             modal.style.maxWidth = '400px';
             modal.style.border = '2px solid #ffab40';
-            
+
             // 弹窗标题
             const title = document.createElement('h2');
             title.textContent = '创建新游戏';
@@ -198,17 +201,17 @@
             title.style.textAlign = 'center';
             title.style.fontSize = '1.8rem';
             title.style.textShadow = '0 0 5px rgba(255, 171, 64, 0.5)';
-            
+
             // 人数输入框
             const playerCountDiv = document.createElement('div');
             playerCountDiv.style.marginBottom = '1.5rem';
-            
+
             const playerCountLabel = document.createElement('label');
             playerCountLabel.textContent = '游戏人数 (2-8人)';
             playerCountLabel.style.display = 'block';
             playerCountLabel.style.marginBottom = '0.5rem';
             playerCountLabel.style.color = '#f5f5f5';
-            
+
             const playerCountInput = document.createElement('input');
             playerCountInput.type = 'number';
             playerCountInput.min = '2';
@@ -221,20 +224,20 @@
             playerCountInput.style.backgroundColor = '#1a1a2e';
             playerCountInput.style.color = '#f5f5f5';
             playerCountInput.style.fontSize = '1rem';
-            
+
             playerCountDiv.appendChild(playerCountLabel);
             playerCountDiv.appendChild(playerCountInput);
-            
+
             // 密码输入框
             const passwordDiv = document.createElement('div');
             passwordDiv.style.marginBottom = '2rem';
-            
+
             const passwordLabel = document.createElement('label');
             passwordLabel.textContent = '房间密码 (可选)';
             passwordLabel.style.display = 'block';
             passwordLabel.style.marginBottom = '0.5rem';
             passwordLabel.style.color = '#f5f5f5';
-            
+
             const passwordInput = document.createElement('input');
             passwordInput.type = 'password';
             passwordInput.placeholder = '可不填';
@@ -245,10 +248,10 @@
             passwordInput.style.backgroundColor = '#1a1a2e';
             passwordInput.style.color = '#f5f5f5';
             passwordInput.style.fontSize = '1rem';
-            
+
             passwordDiv.appendChild(passwordLabel);
             passwordDiv.appendChild(passwordInput);
-            
+
             // 创建按钮
             const createBtn = document.createElement('button');
             createBtn.textContent = '创 建';
@@ -263,34 +266,34 @@
             createBtn.style.cursor = 'pointer';
             createBtn.style.transition = 'all 0.3s';
             createBtn.style.boxShadow = '0 5px 15px rgba(0, 0, 0, 0.3)';
-            
+
             // 按钮悬停效果
             createBtn.addEventListener('mouseenter', () => {
                 createBtn.style.backgroundColor = '#7b1fa2';
                 createBtn.style.transform = 'translateY(-3px)';
                 createBtn.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.4)';
             });
-            
+
             createBtn.addEventListener('mouseleave', () => {
                 createBtn.style.backgroundColor = '#4a148c';
                 createBtn.style.transform = 'translateY(0)';
                 createBtn.style.boxShadow = '0 5px 15px rgba(0, 0, 0, 0.3)';
             });
-            
+
             // 创建按钮点击事件如下：
             createBtn.addEventListener('click', () => {
                 const playerCount = parseInt(playerCountInput.value);
                 const password = passwordInput.value.trim();
-                
+
                 // 验证人数输入
                 if (isNaN(playerCount) || playerCount < 2 || playerCount > 8) {
                     alert('请输入2-8之间的玩家数量！');
                     return;
                 }
-                
+
                 // 关闭弹窗
                 document.body.removeChild(overlay);
-                
+
                 // 显示连接中状态
                 const connectingDiv = document.createElement('div');
                 connectingDiv.innerHTML = `
@@ -318,15 +321,15 @@
                     </div>
                 `;
                 document.body.appendChild(connectingDiv);
-                
+
                 // 发送创建请求
                 const sendSuccess = sendCreateRoomRequest(playerCount, password);
-                
+
                 if (!sendSuccess) {
                     document.body.removeChild(connectingDiv);
                     alert('连接出现问题，请刷新页面重试');
                 }
-                
+
                 // 设置超时处理
                 setTimeout(() => {
                     if (!currentRoomId && document.body.contains(connectingDiv)) {
@@ -335,33 +338,218 @@
                     }
                 }, 100000); // 10秒超时
             });
-            
+
             // 组装弹窗
             modal.appendChild(title);
             modal.appendChild(playerCountDiv);
             modal.appendChild(passwordDiv);
             modal.appendChild(createBtn);
             overlay.appendChild(modal);
-            
+
             // 点击遮罩层关闭弹窗
             overlay.addEventListener('click', (e) => {
                 if (e.target === overlay) {
                     document.body.removeChild(overlay);
                 }
             });
-            
+
             // 添加到页面
             document.body.appendChild(overlay);
-            
+
             // 自动聚焦到人数输入框
             playerCountInput.focus();
         }
-        
-        // 加入游戏
+
+        // 加入游戏 - 新增实现
         function joinGame() {
-            // 这里将替换为实际的加入游戏逻辑
-            window.location.href = '/join-game';
+            // 创建遮罩层
+            const overlay = document.createElement('div');
+            overlay.style.position = 'fixed';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.width = '100%';
+            overlay.style.height = '100%';
+            overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            overlay.style.zIndex = '1000';
+            overlay.style.display = 'flex';
+            overlay.style.justifyContent = 'center';
+            overlay.style.alignItems = 'center';
+
+            // 创建弹窗容器
+            const modal = document.createElement('div');
+            modal.style.backgroundColor = '#2a2a3a';
+            modal.style.padding = '2rem';
+            modal.style.borderRadius = '15px';
+            modal.style.boxShadow = '0 0 20px rgba(255, 171, 64, 0.5)';
+            modal.style.width = '90%';
+            modal.style.maxWidth = '400px';
+            modal.style.border = '2px solid #ffab40';
+
+            // 弹窗标题
+            const title = document.createElement('h2');
+            title.textContent = '加入游戏';
+            title.style.color = '#ffab40';
+            title.style.marginBottom = '1.5rem';
+            title.style.textAlign = 'center';
+            title.style.fontSize = '1.8rem';
+            title.style.textShadow = '0 0 5px rgba(255, 171, 64, 0.5)';
+
+            // 房间号输入框
+            const roomIdDiv = document.createElement('div');
+            roomIdDiv.style.marginBottom = '1.5rem';
+
+            const roomIdLabel = document.createElement('label');
+            roomIdLabel.textContent = '房间号';
+            roomIdLabel.style.display = 'block';
+            roomIdLabel.style.marginBottom = '0.5rem';
+            roomIdLabel.style.color = '#f5f5f5';
+
+            const roomIdInput = document.createElement('input');
+            roomIdInput.type = 'text';
+            roomIdInput.placeholder = '请输入房间号';
+            roomIdInput.style.width = '100%';
+            roomIdInput.style.padding = '0.8rem';
+            roomIdInput.style.borderRadius = '8px';
+            roomIdInput.style.border = '1px solid #444';
+            roomIdInput.style.backgroundColor = '#1a1a2e';
+            roomIdInput.style.color = '#f5f5f5';
+            roomIdInput.style.fontSize = '1rem';
+
+            roomIdDiv.appendChild(roomIdLabel);
+            roomIdDiv.appendChild(roomIdInput);
+
+            // 密码输入框
+            const passwordDiv = document.createElement('div');
+            passwordDiv.style.marginBottom = '2rem';
+
+            const passwordLabel = document.createElement('label');
+            passwordLabel.textContent = '房间密码 (如有)';
+            passwordLabel.style.display = 'block';
+            passwordLabel.style.marginBottom = '0.5rem';
+            passwordLabel.style.color = '#f5f5f5';
+
+            const passwordInput = document.createElement('input');
+            passwordInput.type = 'password';
+            passwordInput.placeholder = '可不填';
+            passwordInput.style.width = '100%';
+            passwordInput.style.padding = '0.8rem';
+            passwordInput.style.borderRadius = '8px';
+            passwordInput.style.border = '1px solid #444';
+            passwordInput.style.backgroundColor = '#1a1a2e';
+            passwordInput.style.color = '#f5f5f5';
+            passwordInput.style.fontSize = '1rem';
+
+            passwordDiv.appendChild(passwordLabel);
+            passwordDiv.appendChild(passwordInput);
+
+            // 加入按钮
+            const joinBtn = document.createElement('button');
+            joinBtn.textContent = '加 入';
+            joinBtn.style.width = '100%';
+            joinBtn.style.padding = '1rem';
+            joinBtn.style.borderRadius = '50px';
+            joinBtn.style.border = 'none';
+            joinBtn.style.backgroundColor = '#e65100';
+            joinBtn.style.color = 'white';
+            joinBtn.style.fontSize = '1.2rem';
+            joinBtn.style.fontWeight = 'bold';
+            joinBtn.style.cursor = 'pointer';
+            joinBtn.style.transition = 'all 0.3s';
+            joinBtn.style.boxShadow = '0 5px 15px rgba(0, 0, 0, 0.3)';
+
+            // 按钮悬停效果
+            joinBtn.addEventListener('mouseenter', () => {
+                joinBtn.style.backgroundColor = '#ff6f00';
+                joinBtn.style.transform = 'translateY(-3px)';
+                joinBtn.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.4)';
+            });
+
+            joinBtn.addEventListener('mouseleave', () => {
+                joinBtn.style.backgroundColor = '#e65100';
+                joinBtn.style.transform = 'translateY(0)';
+                joinBtn.style.boxShadow = '0 5px 15px rgba(0, 0, 0, 0.3)';
+            });
+
+            // 加入按钮点击事件
+            joinBtn.addEventListener('click', () => {
+                const roomId = roomIdInput.value.trim();
+                const password = passwordInput.value.trim();
+
+                // 验证房间号输入
+                if (!roomId) {
+                    alert('请输入房间号！');
+                    return;
+                }
+
+                // 关闭弹窗
+                document.body.removeChild(overlay);
+
+                // 显示连接中状态
+                const connectingDiv = document.createElement('div');
+                connectingDiv.innerHTML = `
+                <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                        background: rgba(0,0,0,0.8); z-index: 1000;
+                        display: flex; flex-direction: column; 
+                        justify-content: center; align-items: center;">
+                    <div style="color: #ffab40; font-size: 1.5rem; margin-bottom: 1rem;">
+                        正在加入房间...
+                    </div>
+                    <div class="spinner"></div>
+                    <style>
+                        .spinner {
+                            width: 50px;
+                            height: 50px;
+                            border: 5px solid rgba(255, 171, 64, 0.3);
+                            border-radius: 50%;
+                            border-top-color: #ffab40;
+                            animation: spin 1s ease-in-out infinite;
+                        }
+                        @keyframes spin {
+                            to { transform: rotate(360deg); }
+                        }
+                    </style>
+                </div>
+            `;
+                document.body.appendChild(connectingDiv);
+
+                // 发送加入请求
+                const sendSuccess = sendJoinRoomRequest(roomId, password);
+
+                if (!sendSuccess) {
+                    document.body.removeChild(connectingDiv);
+                    alert('连接出现问题，请刷新页面重试');
+                }
+
+                // 设置超时处理
+                setTimeout(() => {
+                    if (!currentRoomId && document.body.contains(connectingDiv)) {
+                        document.body.removeChild(connectingDiv);
+                        alert('服务器响应超时，请检查网络连接');
+                    }
+                }, 10000); // 10秒超时
+            });
+
+            // 组装弹窗
+            modal.appendChild(title);
+            modal.appendChild(roomIdDiv);
+            modal.appendChild(passwordDiv);
+            modal.appendChild(joinBtn);
+            overlay.appendChild(modal);
+
+            // 点击遮罩层关闭弹窗
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    document.body.removeChild(overlay);
+                }
+            });
+
+            // 添加到页面
+            document.body.appendChild(overlay);
+
+            // 自动聚焦到房间号输入框
+            roomIdInput.focus();
         }
     </script>
 </body>
+
 </html>

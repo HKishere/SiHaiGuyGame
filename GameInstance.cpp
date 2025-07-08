@@ -4,6 +4,7 @@
 #include <sstream>
 #include <map>
 #include <iomanip>
+#include "Logger.hpp"
 
 constexpr int MAX_TREASURE_NUM = 150;
 constexpr int POLICE_TREASURE_VALUE = -1;
@@ -70,7 +71,7 @@ GameInstance::GameInstance(int nPlayerNum, const std::string &strPassWord)
 
 	// 3. 从 MAX_TREASURE_NUM * 2/3 ~ MAX_TREASURE_NUM 随机选一个整数
 	const int lower_bound = (MAX_TREASURE_NUM * 2) / 3;
-	const int upper_bound = MAX_TREASURE_NUM;
+	const int upper_bound = MAX_TREASURE_NUM - 1;
 	std::uniform_int_distribution<> distrib_count(lower_bound, upper_bound);
 	m_nPoliceIdx = distrib_count(gen);
 	m_vecTeasure.at(m_nPoliceIdx) = POLICE_TREASURE_VALUE;
@@ -94,19 +95,28 @@ void GameInstance::RunGame()
 	}
 }
 
-void GameInstance::AddPlayer(const std::string strPlayerName, lws* WSsocket)
+bool GameInstance::AddPlayer(const std::string strPlayerName, lws *WSsocket)
 {
-	m_vecPlayer.at(m_ConnectedPlayerNum).SetWSsocket(WSsocket);
+	if (m_ConnectedPlayerNum < m_vecPlayer.size()) // 人数不足时才允许加入
+	{
+		m_vecPlayer.at(m_ConnectedPlayerNum).SetWSsocket(WSsocket);
+		m_ConnectedPlayerNum++;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 void GameInstance::GetTreasure()
 {
-	std::cout << "start to get Treasure!>>>>>" << std::endl;
+	LOG_INFO("start to get Treasure!>>>>>");
 	int nTreasureCount = 0;
 	if (m_vecTreasureInTable.size() > 0)
 	{
 		nTreasureCount = 2;
-		std::cout << "treasure in table: [" << m_vecTreasureInTable.size() << "]" << std::endl;
+		LOG_INFO("treasure num in table: [{}]", m_vecTreasureInTable.size());
 	}
 	else
 	{
@@ -115,7 +125,7 @@ void GameInstance::GetTreasure()
 	for (int i = 0; i < nTreasureCount; i++)
 	{
 		int nTreasure = m_vecTeasure.front();
-		std::cout << "treasure: [" << nTreasure << "]" << std::endl;
+		LOG_INFO("NO.{} treasure: [{}]", i, nTreasure);
 		m_vecTeasure.pop_front();
 		if (nTreasure == POLICE_TREASURE_VALUE)
 		{
@@ -210,4 +220,14 @@ void GameInstance::JudgeDivide()
 		m_nBossIdx = GetNextPlayer(m_nBossIdx).GetPlayerIdx();
 		m_TreasureDivideMap.clear();
 	}
+}
+
+std::vector<Player> GameInstance::GetAllPlayers()
+{
+	return m_vecPlayer;
+}
+
+bool GameInstance::CheckPassword(const std::string &inputPassword) const
+{
+	return m_strRoomPassWord.empty() || m_strRoomPassWord == inputPassword;
 }

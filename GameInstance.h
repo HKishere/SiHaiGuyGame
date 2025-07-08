@@ -12,7 +12,7 @@ class GameInstance
 public:
 	GameInstance(int nPlayerNum, const std::string& strPassWord);
 	void RunGame();
-	void AddPlayer(const std::string strPlayerName, lws* WSsocket);
+	bool AddPlayer(const std::string strPlayerName, lws* WSsocket);
 
 	void GetTreasure();
 	void DivideTreasure();
@@ -21,6 +21,9 @@ public:
 	void JudgeDivide();
 	std::string GetRoomId(){return m_strRoomID;};
 	int GetConnectedPlayerNum(){return m_ConnectedPlayerNum;};
+	std::vector<Player> GetAllPlayers();
+	    // 检查密码是否正确
+    bool CheckPassword(const std::string& inputPassword) const;
 
 private:
 	std::thread m_tGameThread;
