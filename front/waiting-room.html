@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>四海好家伙 - 等待房间</title>
+    <script src="/js/websocket.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap');
+
+        :root {
+            --primary-color: #4a148c;
+            --secondary-color: #ff6f00;
+            --accent-color: #ffab40;
+            --text-color: #f5f5f5;
+            --player-empty: #3a3a4a;
+            --player-joined: #2ecc71;
+            --player-ready: #3498db;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            font-family: 'ZCOOL KuaiLe', cursive;
+            color: var(--text-color);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 3rem;
+            text-shadow: 0 0 10px var(--accent-color);
+            margin-bottom: 1rem;
+        }
+
+        .room-info {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--accent-color);
+        }
+
+        .players-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 2rem;
+            max-width: 800px;
+            margin: 2rem auto;
+        }
+
+        .player-slot {
+            position: relative;
+            width: 120px;
+            height: 160px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .player-icon {
+            width: 80px;
+            height: 80px;
+            background-color: var(--player-empty);
+            border-radius: 50%;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        .player-icon::before {
+            content: "👤";
+            position: absolute;
+        }
+
+        .player-icon.joined {
+            background-color: var(--player-joined);
+            box-shadow: 0 0 20px rgba(46, 204, 113, 0.5);
+            color: white;
+        }
+
+        .player-icon.joined::before {
+            content: "😎";
+            filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
+        }
+
+        .player-icon.joined {
+            background-color: var(--player-joined);
+            box-shadow: 0 0 20px rgba(46, 204, 113, 0.5);
+        }
+
+        .player-label {
+            font-size: 1.2rem;
+            text-align: center;
+        }
+
+        .player-name {
+            font-size: 1rem;
+            color: var(--accent-color);
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .status-message {
+            font-size: 1.5rem;
+            margin-top: 2rem;
+            text-align: center;
+            min-height: 2rem;
+            color: var(--accent-color);
+        }
+
+        .start-button {
+            margin-top: 2rem;
+            padding: 1rem 2rem;
+            font-size: 1.5rem;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            border: none;
+            border-radius: 50px;
+            color: white;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .start-button.visible {
+            opacity: 1;
+        }
+
+        .start-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .players-container {
+                gap: 1rem;
+            }
+
+            .player-slot {
+                width: 80px;
+                height: 120px;
+            }
+
+            .player-icon {
+                width: 70px;
+                height: 90px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+
+<body>
+    <div class="header">
+        <h1>等待房间</h1>
+        <div class="room-info" id="roomInfo">
+            房间号: 加载中...
+        </div>
+    </div>
+
+    <div class="players-container" id="playersContainer">
+        <!-- 玩家槽位将通过JS动态生成 -->
+    </div>
+
+    <div class="status-message" id="statusMessage"></div>
+
+    <button class="start-button" id="startButton">开始游戏</button>
+
+    <script>
+        // 从URL获取参数
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomId = urlParams.get('room_id');
+        const playerIdx = parseInt(urlParams.get('player_idx'));
+
+        // 全局状态
+        let playerSlots = [];
+        let maxPlayers = 4; // 默认4人，实际从服务器获取
+        let isRoomOwner = false;
+
+        // DOM元素
+        const roomInfoEl = document.getElementById('roomInfo');
+        const playersContainerEl = document.getElementById('playersContainer');
+        const statusMessageEl = document.getElementById('statusMessage');
+        const startButtonEl = document.getElementById('startButton');
+
+        // 初始化页面
+        function initPage() {
+            // 显示房间信息
+            roomInfoEl.textContent = `房间号: ${roomId} (玩家 ${playerIdx + 1})`;
+
+            // 检查是否是房主（假设第一个加入的是房主）
+            isRoomOwner = (playerIdx === 0);
+
+            // 从服务器获取房间信息（模拟）
+            fetchRoomInfo();
+
+            // 初始化WebSocket连接
+            connectWebSocket(roomId, playerIdx);
+        }
+
+        // 模拟从服务器获取房间信息
+        function fetchRoomInfo() {
+            // 实际应该通过WebSocket请求服务器
+            setTimeout(() => {
+                maxPlayers = 6; // 假设服务器返回6人房间
+                renderPlayerSlots();
+
+                // 模拟已有玩家加入
+                updatePlayerStatus(0, true, "玩家1");
+                updatePlayerStatus(2, true, "玩家3");
+                updatePlayerStatus(playerIdx, true, "你");
+            }, 500);
+        }
+
+        // 渲染玩家槽位
+        function renderPlayerSlots() {
+            playersContainerEl.innerHTML = '';
+            playerSlots = [];
+
+            for (let i = 0; i < maxPlayers; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'player-slot';
+                slot.innerHTML = `
+                    <div class="player-icon" id="playerIcon-${i}"></div>
+                    <div class="player-label">
+                        <div>玩家 ${i + 1}</div>
+                        <div class="player-name" id="playerName-${i}">等待加入...</div>
+                    </div>
+                `;
+                playersContainerEl.appendChild(slot);
+                playerSlots.push({
+                    joined: false,
+                    name: ''
+                });
+            }
+
+            // 如果是房主且房间已满，显示开始按钮
+            if (isRoomOwner && checkAllPlayersJoined()) {
+                startButtonEl.classList.add('visible');
+            }
+        }
+
+        // 更新玩家状态
+        function updatePlayerStatus(index, joined, name = '') {
+            const icon = document.getElementById(`playerIcon-${index}`);
+            const nameEl = document.getElementById(`playerName-${index}`);
+
+            if (icon) {
+                if (joined) {
+                    icon.classList.add('joined');
+                    nameEl.textContent = name || `玩家 ${index + 1}`;
+                    playerSlots[index].joined = true;
+                    playerSlots[index].name = name;
+                } else {
+                    icon.classList.remove('joined');
+                    nameEl.textContent = '等待加入...';
+                    playerSlots[index].joined = false;
+                    playerSlots[index].name = '';
+                }
+            }
+
+            updateStatusMessage();
+
+            // 检查是否所有玩家都已加入
+            if (isRoomOwner && checkAllPlayersJoined()) {
+                startButtonEl.classList.add('visible');
+            } else {
+                startButtonEl.classList.remove('visible');
+            }
+        }
+
+        // 检查是否所有玩家都已加入
+        function checkAllPlayersJoined() {
+            return playerSlots.every(slot => slot.joined);
+        }
+
+        // 更新状态消息
+        function updateStatusMessage() {
+            const joinedCount = playerSlots.filter(slot => slot.joined).length;
+
+            if (joinedCount === maxPlayers) {
+                statusMessageEl.textContent = '房间已满，准备开始游戏！';
+            } else {
+                statusMessageEl.textContent = `等待玩家加入 (${joinedCount}/${maxPlayers})`;
+            }
+        }
+
+        // 开始游戏按钮点击事件
+        startButtonEl.addEventListener('click', () => {
+            // 发送开始游戏请求到服务器
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                const request = {
+                    action: "start_game",
+                    room_id: roomId
+                };
+                socket.send(JSON.stringify(request));
+
+                // 显示加载状态
+                statusMessageEl.textContent = '游戏即将开始...';
+                startButtonEl.disabled = true;
+            }
+        });
+
+        // WebSocket消息处理（覆盖websocket.js中的默认处理）
+        function handleServerMessage(response) {
+            console.log('等待房间收到消息:', response);
+
+            switch (response.action) {
+                case 'player_joined':
+                    updatePlayerStatus(response.player_idx, true, response.player_name);
+                    break;
+
+                case 'player_left':
+                    updatePlayerStatus(response.player_idx, false);
+                    break;
+
+                case 'game_started':
+                    // 跳转到游戏页面
+                    window.location.href = `/game?room_id=${roomId}&player_idx=${playerIdx}`;
+                    break;
+
+                default:
+                    console.log('未处理的消息类型:', response.action);
+            }
+        }
+
+        // 页面加载时初始化
+        window.addEventListener('load', initPage);
+    </script>
+</body>
+
+</html>

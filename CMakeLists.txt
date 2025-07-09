@@ -16,6 +16,7 @@ pkg_check_modules(LIBWEBSOCKETS REQUIRED libwebsockets)
 # 查找spdlog和fmt库
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
+find_package(jwt-cpp CONFIG REQUIRED)
 
 # 查找jsoncpp库
 pkg_check_modules(JSONCPP REQUIRED jsoncpp)
@@ -43,6 +44,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     spdlog::spdlog
     fmt::fmt
     ${JSONCPP_LIBRARIES}
+    jwt-cpp::jwt-cpp
 )
 
 # 可选：输出调试信息
@@ -52,3 +54,4 @@ message(STATUS "spdlog found: ${spdlog_FOUND}")
 message(STATUS "fmt found: ${fmt_FOUND}")
 message(STATUS "JsonCpp found: ${JsonCpp_FOUND}")
 message(STATUS "JsonCpp version: ${JsonCpp_VERSION}")
+message(STATUS "Jwt-cpp version: ${jwt-cpp_VERSION}")
