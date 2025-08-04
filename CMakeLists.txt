@@ -47,11 +47,14 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     jwt-cpp::jwt-cpp
 )
 
+
 # 可选：输出调试信息
 message(STATUS "Libwebsockets include dirs: ${LIBWEBSOCKETS_INCLUDE_DIRS}")
+message(STATUS "Cmake current dirs: ${CMAKE_SOURCE_DIR}")
 message(STATUS "Libwebsockets libraries: ${LIBWEBSOCKETS_LIBRARIES}")
 message(STATUS "spdlog found: ${spdlog_FOUND}")
 message(STATUS "fmt found: ${fmt_FOUND}")
-message(STATUS "JsonCpp found: ${JsonCpp_FOUND}")
-message(STATUS "JsonCpp version: ${JsonCpp_VERSION}")
+message(STATUS "JsonCpp found: ${JSONCPP_FOUND}")
+message(STATUS "JsonCpp version: ${JSONCPP_VERSION}")
 message(STATUS "Jwt-cpp version: ${jwt-cpp_VERSION}")
+

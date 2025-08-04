@@ -2,6 +2,7 @@
 #include <json/json.h>
 #include "Logger.hpp"
 #include "GameInstance.h"
+#include "JwtUtil.h"
 
 #define PORT 8080
 
@@ -96,6 +97,7 @@ std::string CreateGame(const std::string &strJson, lws *wsi)
     response["message"] = "Game created successfully!";
     response["room_id"] = strRoomId;
     response["player_idx"] = newGame.get()->GetConnectedPlayerNum(); // 从房间信息获取
+    response["jwt"] = JWTUtil::generateToken(strRoomId, newGame.get()->GetConnectedPlayerNum());
 
     // 加入Player到游戏实例中
     std::string strDefaultName = "Player_" + newGame.get()->GetConnectedPlayerNum();
@@ -108,6 +110,69 @@ std::string CreateGame(const std::string &strJson, lws *wsi)
     return Json::writeString(writer, response);
 }
 
+std::string WaitGame(const std::string& strJson, lws* wsi)
+{
+       try {
+        // 1. 解析输入JSON
+        Json::Value jsonInput;
+        Json::Reader reader;
+        if (!reader.parse(strJson, jsonInput)) {
+            return R"({"error":"Invalid JSON input"})";
+        }
+
+        // 2. 获取JWT token
+        if (!jsonInput.isMember("token")) {
+            return R"({"error":"Missing JWT token"})";
+        }
+        std::string token = jsonInput["token"].asString();
+
+        // 3. 验证JWT
+        auto decoded = jwt::decode<jwt::traits::open_source_parsers_jsoncpp>(token);
+        
+        // 验证签名和有效期
+        // 正确的验证器声明方式
+        auto verifier = jwt::verify<jwt::traits::open_source_parsers_jsoncpp>()
+            .allow_algorithm(jwt::algorithm::hs256{SECRET_JWT})
+            .with_issuer("game_server");
+
+        // 检查必须存在的claim的正确方式
+        if (!decoded.has_payload_claim("room_id")) {
+            return R"({"error":"Missing room_id in token"})";
+        }
+        if (!decoded.has_payload_claim("player_idx")) {
+            return R"({"error":"Missing player_idx in token"})";
+        }
+
+        verifier.verify(decoded);
+
+        // 4. 检查有效期
+        auto now = std::chrono::system_clock::now();
+        if (decoded.has_expires_at()) {
+            auto exp = decoded.get_expires_at();
+            if (now > exp) {
+                return R"({"error":"Token expired"})";
+            }
+        }
+
+        // 5. 提取必要信息
+        std::string room_id = decoded.get_payload_claim("room_id").as_string();
+        int player_idx = decoded.get_payload_claim("player_idx").as_integer();
+
+        // 6. 返回成功响应
+        Json::Value jsonResponse;
+        jsonResponse["status"] = "success";
+        jsonResponse["room_id"] = room_id;
+        jsonResponse["player_idx"] = player_idx;
+        
+        Json::StreamWriterBuilder writer;
+        return Json::writeString(writer, jsonResponse);
+
+    } catch (const jwt::error::token_verification_exception& e) {
+        return R"({"error":"JWT verification failed: )" + std::string(e.what()) + "\"}";
+    } catch (const std::exception& e) {
+        return R"({"error":")" + std::string(e.what()) + "\"}";
+    } 
+}
 std::string JoinGame(const std::string& strJson, lws* wsi) 
 {
     Json::Value root;
@@ -176,7 +241,7 @@ std::string JoinGame(const std::string& strJson, lws* wsi)
     response["player_idx"] = playerIdx;
     response["player_name"] = playerName;
     response["message"] = "Joined game successfully";
-
+    response["jwt"] = JWTUtil::generateToken(roomId, playerIdx);
     // // 9. 通知房间内其他玩家
     // Json::Value notifyOthers;
     // notifyOthers["action"] = "player_joined";
@@ -212,6 +277,10 @@ std::string process_game_command(const std::string &input, lws *wsi)
     else if (strAction == "join")
     {
         response = JoinGame(input, wsi);
+    }
+    else if (strAction == "wait")
+    {
+        response = WaitGame(input, wsi);
     }
     
     return response;
